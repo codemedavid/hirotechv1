@@ -136,7 +136,7 @@ export function ScoreRangeDialog({
           <DialogTitle>Configure Lead Score Ranges</DialogTitle>
           <DialogDescription>
             Set score ranges for each stage. Contacts will be automatically assigned to stages
-            based on their lead score. Click "Auto-Generate" for intelligent defaults.
+            based on their lead score. Click &quot;Auto-Generate&quot; for intelligent defaults.
           </DialogDescription>
         </DialogHeader>
 

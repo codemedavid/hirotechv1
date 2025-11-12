@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/db';
+import { validateScoreRange, detectScoreRangeOverlaps } from '@/lib/pipelines/validation';
 
 interface StageRange {
   stageId: string;
@@ -34,6 +35,17 @@ export async function POST(
       );
     }
 
+    // Validate each score range
+    for (const range of stageRanges) {
+      const validation = validateScoreRange(range.leadScoreMin, range.leadScoreMax);
+      if (!validation.valid) {
+        return NextResponse.json(
+          { error: validation.errors.join(', ') },
+          { status: 400 }
+        );
+      }
+    }
+
     // Verify pipeline belongs to user's organization
     const pipeline = await prisma.pipeline.findFirst({
       where: {
@@ -47,6 +59,26 @@ export async function POST(
     }
 
     console.log(`[Update Ranges] Updating ${stageRanges.length} stage ranges for pipeline ${id}`);
+
+    // Fetch current stages to check for overlaps
+    const stages = await prisma.pipelineStage.findMany({
+      where: { pipelineId: id },
+      select: { id: true, name: true, leadScoreMin: true, leadScoreMax: true, type: true }
+    });
+
+    // Update ranges with new values for overlap check
+    const updatedStages = stages.map(stage => {
+      const newRange = stageRanges.find(r => r.stageId === stage.id);
+      return newRange
+        ? { ...stage, leadScoreMin: newRange.leadScoreMin, leadScoreMax: newRange.leadScoreMax }
+        : stage;
+    });
+
+    // Check for overlaps and warn
+    const overlaps = detectScoreRangeOverlaps(updatedStages);
+    if (overlaps.length > 0) {
+      console.warn(`[Update Ranges] Warning: Detected ${overlaps.length} overlapping score ranges`);
+    }
 
     // Update each stage's score range
     await Promise.all(
@@ -65,7 +97,8 @@ export async function POST(
 
     return NextResponse.json({ 
       success: true,
-      updated: stageRanges.length
+      updated: stageRanges.length,
+      warnings: overlaps.length > 0 ? overlaps : undefined
     });
   } catch (error) {
     console.error('[Update Ranges] Error:', error);

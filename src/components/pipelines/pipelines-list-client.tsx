@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -24,7 +24,7 @@ import {
 interface Pipeline {
   id: string;
   name: string;
-  description?: string;
+  description: string | null;
   color: string;
   stages: Array<{
     id: string;

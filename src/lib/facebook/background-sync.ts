@@ -115,7 +115,7 @@ async function executeBackgroundSync(jobId: string, facebookPageId: string): Pro
       const hasDefaultRanges = page.autoPipeline.stages.some(
         s => s.leadScoreMin === 0 && s.leadScoreMax === 100
       );
-      
+
       if (hasDefaultRanges) {
         console.log(`[Background Sync ${jobId}] Detected default score ranges, auto-generating intelligent ranges...`);
         await applyStageScoreRanges(page.autoPipelineId);

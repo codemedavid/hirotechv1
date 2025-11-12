@@ -1,5 +1,4 @@
 import { prisma } from '@/lib/db';
-import { StageType } from '@prisma/client';
 
 /**
  * Intelligent Stage Analyzer

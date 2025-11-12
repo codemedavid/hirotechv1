@@ -232,7 +232,7 @@ export class FacebookClient {
 
     try {
       while (hasMore && nextUrl) {
-        const response = await axios.get(nextUrl, {
+        const response: any = await axios.get(nextUrl, {
           params: {
             access_token: this.accessToken,
             fields: 'from,message,created_time',
@@ -360,6 +360,20 @@ export class FacebookClient {
       return response.data;
     } catch (error: any) {
       throw parseFacebookError(error, `Failed to get Instagram profile for User ID: ${igUserId}`);
+    }
+  }
+
+  /**
+   * Generic method to get conversations (automatically detects platform)
+   */
+  async getConversations(pageIdOrIgId: string, limit = 100) {
+    // Try Messenger first (most common)
+    try {
+      return await this.getMessengerConversations(pageIdOrIgId, limit);
+    } catch (error: any) {
+      // If Messenger fails, try Instagram
+      console.warn('[Facebook Client] Messenger fetch failed, trying Instagram...');
+      return await this.getInstagramConversations(pageIdOrIgId, limit);
     }
   }
 }

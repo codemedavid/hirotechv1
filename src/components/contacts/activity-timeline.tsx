@@ -17,7 +17,7 @@ interface Activity {
   } | null;
 }
 
-const activityIcons: Record<string, any> = {
+const activityIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   MESSAGE_SENT: MessageSquare,
   MESSAGE_RECEIVED: MessageSquare,
   TAG_ADDED: Tag,

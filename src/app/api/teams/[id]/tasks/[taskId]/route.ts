@@ -101,6 +101,18 @@ export async function PATCH(
         entityId: task.id,
         entityName: task.title
       })
+
+      // Notify task creator
+      if (task.createdById !== member.id) {
+        const { notifyTaskCompleted } = await import('@/lib/teams/notifications')
+        await notifyTaskCompleted({
+          taskId: task.id,
+          creatorId: task.createdById,
+          taskTitle: task.title,
+          completedBy: member.id,
+          teamId: id
+        }).catch(err => console.error('Failed to send task completion notification:', err))
+      }
     } else {
       await logActivity({
         teamId: id,
@@ -111,6 +123,26 @@ export async function PATCH(
         entityId: task.id,
         entityName: task.title
       })
+
+      // Notify assignee if task was updated
+      if (task.assignedToId && task.assignedToId !== member.id) {
+        const changes = []
+        if (priority !== undefined) changes.push(`Priority: ${priority}`)
+        if (dueDate !== undefined) changes.push(`Due date: ${dueDate ? new Date(dueDate).toLocaleDateString() : 'removed'}`)
+        if (description !== undefined) changes.push('Description updated')
+        
+        if (changes.length > 0) {
+          const { notifyTaskUpdated } = await import('@/lib/teams/notifications')
+          await notifyTaskUpdated({
+            taskId: task.id,
+            assigneeId: task.assignedToId,
+            taskTitle: task.title,
+            changesSummary: changes.join(', '),
+            updatedBy: member.id,
+            teamId: id
+          }).catch(err => console.error('Failed to send task update notification:', err))
+        }
+      }
     }
 
     return NextResponse.json({ task })

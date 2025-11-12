@@ -52,7 +52,7 @@ export async function autoAssignContactToPipeline(options: AutoAssignOptions) {
 
   // INTELLIGENT STAGE MATCHING
   // Priority 1: Use AI-powered stage analyzer with score ranges and status routing
-  let targetStageId = await findBestMatchingStage(
+  const targetStageId = await findBestMatchingStage(
     pipelineId,
     aiAnalysis.leadScore,
     aiAnalysis.leadStatus

@@ -43,6 +43,26 @@ const ConnectedPagesList = dynamic(
   }
 );
 
+const FacebookDiagnosticPanel = dynamic(
+  () => import('@/components/settings/facebook-diagnostic-panel').then(mod => ({ default: mod.FacebookDiagnosticPanel })),
+  {
+    loading: () => (
+      <Card>
+        <CardHeader>
+          <CardTitle>Diagnostics</CardTitle>
+          <CardDescription>Loading diagnostic tools...</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center py-12">
+            <LoadingSpinner className="h-8 w-8" />
+          </div>
+        </CardContent>
+      </Card>
+    ),
+    ssr: false
+  }
+);
+
 interface IntegrationsClientProps {
   initialTotalContacts: number;
 }
@@ -193,6 +213,9 @@ export function IntegrationsClient({ initialTotalContacts }: IntegrationsClientP
           Connect your Facebook pages for Messenger bulk messaging
         </p>
       </div>
+
+      {/* Diagnostic Panel */}
+      <FacebookDiagnosticPanel />
 
       {/* Total Contacts Counter */}
       <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border-blue-200 dark:border-blue-800">

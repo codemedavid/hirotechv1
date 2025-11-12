@@ -2,6 +2,7 @@
 
 import { auth } from '@/auth';
 import { prisma } from '@/lib/db';
+import { ActivityType } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
 
 export async function addTagToContact(contactId: string, tag: string) {
@@ -103,7 +104,7 @@ export async function removeTagFromContact(contactId: string, tag: string) {
       data: {
         contactId,
         userId: session.user.id,
-        type: 'TAG_REMOVED',
+        type: 'TAG_ADDED',
         title: 'Tag Removed',
         description: `Removed tag: ${tag}`,
       },
@@ -118,4 +119,3 @@ export async function removeTagFromContact(contactId: string, tag: string) {
     return { success: false, error: 'Failed to remove tag' };
   }
 }
-

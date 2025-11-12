@@ -23,8 +23,7 @@ const ProfileForm = dynamic(
         <Skeleton className="h-10 w-full" />
         <Skeleton className="h-10 w-32" />
       </div>
-    ),
-    ssr: false
+    )
   }
 );
 
@@ -38,8 +37,7 @@ const PasswordForm = dynamic(
         <Skeleton className="h-10 w-full" />
         <Skeleton className="h-10 w-32" />
       </div>
-    ),
-    ssr: false
+    )
   }
 );
 
@@ -53,8 +51,7 @@ const EmailForm = dynamic(
         <Skeleton className="h-10 w-full" />
         <Skeleton className="h-10 w-32" />
       </div>
-    ),
-    ssr: false
+    )
   }
 );
 
@@ -93,7 +90,12 @@ export default async function ProfilePage() {
                 <Skeleton className="h-10 w-full" />
               </div>
             }>
-              <ProfileForm user={session.user} />
+              <ProfileForm user={{
+                id: session.user.id,
+                email: session.user.email,
+                name: session.user.name || undefined,
+                image: session.user.image || undefined,
+              }} />
             </Suspense>
           </CardContent>
         </Card>

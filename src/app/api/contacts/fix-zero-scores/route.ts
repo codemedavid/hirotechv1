@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
       .map(contact => ({
         contactId: contact.id,
         messages: contact.conversations[0].messages.map(msg => ({
-          from: msg.senderName || 'Unknown',
+          from: msg.isFromBusiness ? 'Business' : (contact.firstName || 'Customer'),
           text: msg.content,
           timestamp: msg.createdAt
         })),
