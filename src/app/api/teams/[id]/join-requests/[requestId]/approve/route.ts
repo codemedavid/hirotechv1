@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db'
 import { isTeamAdmin } from '@/lib/teams/permissions'
 import { createDefaultPermissions } from '@/lib/teams/permissions'
 import { logActivity } from '@/lib/teams/activity'
+import { createDefaultTeamThreads, addMemberToChannelThreads } from '@/lib/teams/auto-create-threads'
 
 interface RouteParams {
   params: Promise<{ id: string; requestId: string }>
@@ -84,6 +85,12 @@ export async function POST(
 
     // Create default permissions
     await createDefaultPermissions(member.id, 'MEMBER')
+
+    // Auto-create default threads if they don't exist yet
+    await createDefaultTeamThreads(id)
+
+    // Add member to all existing channel threads
+    await addMemberToChannelThreads(id, member.id)
 
     // Log activity
     await logActivity({

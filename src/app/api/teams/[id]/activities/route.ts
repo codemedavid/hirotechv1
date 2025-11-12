@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
+import { TeamActivityType } from '@prisma/client'
 import { getTeamActivities, getMemberEngagementMetrics, getActivityHeatmap } from '@/lib/teams/activity'
 import { isTeamAdmin } from '@/lib/teams/permissions'
-import { TeamActivityType } from '@prisma/client'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -81,7 +81,7 @@ export async function GET(
 
     const { activities, total } = await getTeamActivities(id, {
       memberId: targetMemberId || undefined,
-      type: type ? (type as TeamActivityType) : undefined,
+      type: type as TeamActivityType | undefined,
       entityType: entityType || undefined,
       startDate: startDate ? new Date(startDate) : undefined,
       endDate: endDate ? new Date(endDate) : undefined,

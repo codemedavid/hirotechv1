@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
     }
 
     const organizationId = session.user.organizationId;
-    const body = await req.json();
+    const body = await req.json() as { limit?: number; skipIfHasContext?: boolean };
     const { limit = 100, skipIfHasContext = true } = body;
 
     const result = await analyzeExistingContacts({
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json(result);
-  } catch (error: unknown) {
+  } catch (error) {
     console.error('[API] Analyze contacts error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Failed to analyze contacts';
     return NextResponse.json(

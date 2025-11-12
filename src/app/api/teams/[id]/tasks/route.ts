@@ -194,7 +194,18 @@ export async function POST(
       entityName: task.title
     })
 
-    // TODO: Send notification to assigned member
+    // Send notification to assigned member
+    if (assignedToId && assignedToId !== member.id) {
+      const { notifyTaskAssigned } = await import('@/lib/teams/notifications')
+      await notifyTaskAssigned({
+        taskId: task.id,
+        assigneeId: assignedToId,
+        taskTitle: task.title,
+        assignedBy: member.id,
+        teamId: id,
+        dueDate: task.dueDate
+      }).catch(err => console.error('Failed to send task assignment notification:', err))
+    }
 
     return NextResponse.json({ task }, { status: 201 })
   } catch (error) {

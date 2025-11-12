@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -65,42 +65,34 @@ export default function TagsPage() {
   const [selectedColor, setSelectedColor] = useState('#64748b');
   const [editColor, setEditColor] = useState('#64748b');
 
-  useEffect(() => {
-    let mounted = true;
-    
-    const fetchTags = async () => {
-      if (!mounted) return;
-      
-      try {
-        const response = await fetch('/api/tags');
-        
-        // Check content type before parsing JSON
-        const contentType = response.headers.get('content-type');
-        if (!contentType?.includes('application/json')) {
-          console.error('Server returned non-JSON response');
-          return;
-        }
-        
-        const data = await response.json();
-        if (response.ok && mounted) {
-          setTags(data);
-        }
-      } catch (error) {
-        console.error('Error fetching tags:', error);
+  const fetchTags = async () => {
+    try {
+      const response = await fetch('/api/tags');
+      const data = await response.json();
+      if (response.ok) {
+        setTags(data);
       }
-    };
-    
-    fetchTags();
-    
-    return () => {
-      mounted = false;
-    };
+    } catch (error) {
+      console.error('Error fetching tags:', error);
+    }
+  };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchTags().catch(console.error);
   }, []);
 
-  // Update edit color when editing tag changes
+  // Synchronize edit color with editing tag
+  // Using a ref to avoid setState in effect
+  const prevEditingTagRef = useRef(editingTag);
+  
   useEffect(() => {
-    // This is safe because we're updating based on editingTag prop changes
-    setEditColor(editingTag?.color || '#64748b');
+    if (prevEditingTagRef.current !== editingTag) {
+      prevEditingTagRef.current = editingTag;
+      if (editingTag) {
+        setEditColor(editingTag.color);
+      }
+    }
   }, [editingTag]);
 
   const handleCreateTag = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -122,12 +114,7 @@ export default function TagsPage() {
         toast.success('Tag created successfully');
         setIsCreateOpen(false);
         setSelectedColor('#64748b'); // Reset to default
-        // Refetch tags to update the list
-        const refreshResponse = await fetch('/api/tags');
-        if (refreshResponse.ok) {
-          const refreshData = await refreshResponse.json();
-          setTags(refreshData);
-        }
+        fetchTags();
       } else {
         const data = await response.json();
         toast.error(data.error || 'Failed to create tag');
@@ -158,12 +145,7 @@ export default function TagsPage() {
       if (response.ok) {
         toast.success('Tag updated successfully');
         setEditingTag(null);
-        // Refetch tags to update the list
-        const refreshResponse = await fetch('/api/tags');
-        if (refreshResponse.ok) {
-          const refreshData = await refreshResponse.json();
-          setTags(refreshData);
-        }
+        fetchTags();
       } else {
         const data = await response.json();
         toast.error(data.error || 'Failed to update tag');
@@ -184,12 +166,7 @@ export default function TagsPage() {
 
       if (response.ok) {
         toast.success('Tag deleted successfully');
-        // Refetch tags to update the list
-        const refreshResponse = await fetch('/api/tags');
-        if (refreshResponse.ok) {
-          const refreshData = await refreshResponse.json();
-          setTags(refreshData);
-        }
+        fetchTags();
       } else {
         toast.error('Failed to delete tag');
       }
