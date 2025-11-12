@@ -1,0 +1,19 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Royal Blue Background -->
+  <rect width="200" height="200" fill="#2D4BCC"/>
+  
+  <!-- White Shapes -->
+  <g fill="white">
+    <!-- Left Large Semicircle - curved edge left, flat edge right -->
+    <path d="M 25,100 A 75,75 0 0,1 100,25 L 100,175 A 75,75 0 0,1 25,100 Z"/>
+    
+    <!-- Right Large Semicircle - curved edge right, flat edge left -->
+    <path d="M 175,100 A 75,75 0 0,0 100,25 L 100,175 A 75,75 0 0,0 175,100 Z"/>
+    
+    <!-- Top Central Dome Shape - inverted dome with tapered sides -->
+    <path d="M 75,60 Q 75,30 100,30 Q 125,30 125,60 L 125,90 Q 120,95 100,95 Q 80,95 75,90 Z"/>
+    
+    <!-- Bottom Central Dome Shape - upward dome with tapered sides -->
+    <path d="M 75,140 Q 75,170 100,170 Q 125,170 125,140 L 125,110 Q 120,105 100,105 Q 80,105 75,110 Z"/>
+  </g>
+</svg>

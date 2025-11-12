@@ -357,7 +357,6 @@ export default function CampaignsPage() {
   const visibleCampaigns = activeTab === 'active' ? activeCampaigns : historyCampaigns;
   const allVisibleSelected = visibleCampaigns.length > 0 && 
     visibleCampaigns.every((c) => selectedCampaigns.has(c.id));
-  const someVisibleSelected = visibleCampaigns.some((c) => selectedCampaigns.has(c.id));
 
   return (
     <div className="space-y-6 relative">

@@ -7,6 +7,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Progress } from '@/components/ui/progress';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { 
   ArrowLeft, 
   Send, 
@@ -14,7 +24,9 @@ import {
   XCircle, 
   Clock,
   MessageSquare,
-  Users
+  Users,
+  Ban,
+  RotateCw
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistance } from 'date-fns';
@@ -55,6 +67,10 @@ export default function CampaignDetailPage() {
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [showResendDialog, setShowResendDialog] = useState(false);
   
   // Use ref to avoid stale closure in interval
   const campaignRef = useRef(campaign);
@@ -126,7 +142,7 @@ export default function CampaignDetailPage() {
       const data = await response.json();
 
       if (response.ok) {
-        toast.success(`Campaign started! ${data.queued} messages queued for sending.`);
+        toast.success(`Campaign started! ${data.queued} messages are being sent in parallel batches - Fast mode! ⚡`);
         fetchCampaign();
       } else {
         toast.error(data.error || 'Failed to start campaign');
@@ -137,6 +153,70 @@ export default function CampaignDetailPage() {
       toast.error(err.message || 'An error occurred while starting campaign');
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleCancelCampaign = async () => {
+    setCancelling(true);
+    setShowCancelDialog(false);
+    
+    try {
+      const response = await fetch(`/api/campaigns/${params.id}/cancel`, {
+        method: 'POST',
+      });
+
+      // Check if response is JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType?.includes('application/json')) {
+        throw new Error('Server returned non-JSON response');
+      }
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success('Campaign cancelled successfully. No more messages will be sent.');
+        fetchCampaign();
+      } else {
+        toast.error(data.error || 'Failed to cancel campaign');
+      }
+    } catch (error) {
+      console.error('Error cancelling campaign:', error);
+      const err = error as Error;
+      toast.error(err.message || 'An error occurred while cancelling campaign');
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+  const handleResendCampaign = async () => {
+    setResending(true);
+    setShowResendDialog(false);
+    
+    try {
+      const response = await fetch(`/api/campaigns/${params.id}/resend`, {
+        method: 'POST',
+      });
+
+      // Check if response is JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType?.includes('application/json')) {
+        throw new Error('Server returned non-JSON response');
+      }
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success(`Campaign is being resent! ${data.queued} messages are being sent - Fast mode! ⚡`);
+        fetchCampaign();
+      } else {
+        toast.error(data.error || 'Failed to resend campaign');
+      }
+    } catch (error) {
+      console.error('Error resending campaign:', error);
+      const err = error as Error;
+      toast.error(err.message || 'An error occurred while resending campaign');
+    } finally {
+      setResending(false);
     }
   };
 
@@ -209,12 +289,36 @@ export default function CampaignDetailPage() {
           </div>
         </div>
 
-        {campaign.status === 'DRAFT' && (
-          <Button onClick={handleStartCampaign} disabled={sending}>
-            <Send className="h-4 w-4 mr-2" />
-            {sending ? 'Starting...' : 'Start Campaign'}
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {campaign.status === 'DRAFT' && (
+            <Button onClick={handleStartCampaign} disabled={sending}>
+              <Send className="h-4 w-4 mr-2" />
+              {sending ? 'Starting...' : 'Start Campaign'}
+            </Button>
+          )}
+
+          {campaign.status === 'SENDING' && (
+            <Button 
+              variant="destructive" 
+              onClick={() => setShowCancelDialog(true)} 
+              disabled={cancelling}
+            >
+              <Ban className="h-4 w-4 mr-2" />
+              {cancelling ? 'Cancelling...' : 'Cancel Campaign'}
+            </Button>
+          )}
+
+          {['COMPLETED', 'SENT', 'CANCELLED', 'PAUSED'].includes(campaign.status) && (
+            <Button 
+              onClick={() => setShowResendDialog(true)} 
+              disabled={resending}
+              variant="outline"
+            >
+              <RotateCw className="h-4 w-4 mr-2" />
+              {resending ? 'Resending...' : 'Resend Campaign'}
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Stats Overview */}
@@ -286,10 +390,10 @@ export default function CampaignDetailPage() {
               </div>
               <Progress value={progress} className="h-2" />
             </div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2 text-sm text-green-600 font-medium">
               <Clock className="h-4 w-4" />
               <span>
-                Sending at {campaign.rateLimit} messages per hour
+                ⚡ Fast parallel sending - No rate limits!
               </span>
             </div>
           </CardContent>
@@ -334,8 +438,8 @@ export default function CampaignDetailPage() {
             )}
 
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Rate Limit</span>
-              <span className="text-sm font-medium">{campaign.rateLimit}/hour</span>
+              <span className="text-sm text-muted-foreground">Sending Speed</span>
+              <span className="text-sm font-medium text-green-600">⚡ Fast (No Limits)</span>
             </div>
 
             {campaign.facebookPage && (
@@ -433,6 +537,51 @@ export default function CampaignDetailPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Cancel Campaign Dialog */}
+      <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel Campaign?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to cancel this campaign? This will stop all pending messages from being sent.
+              Messages that have already been sent cannot be recalled.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={cancelling}>Keep Sending</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleCancelCampaign}
+              disabled={cancelling}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {cancelling ? 'Cancelling...' : 'Yes, Cancel Campaign'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Resend Campaign Dialog */}
+      <AlertDialog open={showResendDialog} onOpenChange={setShowResendDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Resend Campaign?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will reset the campaign and send messages to all target contacts again. 
+              Previous campaign messages and statistics will be cleared. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={resending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleResendCampaign}
+              disabled={resending}
+            >
+              {resending ? 'Resending...' : 'Yes, Resend Campaign'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
