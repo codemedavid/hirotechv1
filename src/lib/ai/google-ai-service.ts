@@ -15,6 +15,10 @@ class GoogleAIKeyManager {
       process.env.GOOGLE_AI_API_KEY_6,
       process.env.GOOGLE_AI_API_KEY_7,
       process.env.GOOGLE_AI_API_KEY_8,
+      process.env.GOOGLE_AI_API_KEY_9,
+      process.env.GOOGLE_AI_API_KEY_10,
+      process.env.GOOGLE_AI_API_KEY_11,
+      process.env.GOOGLE_AI_API_KEY_12,
     ].filter((key): key is string => !!key);
 
     if (this.keys.length === 0) {
@@ -75,9 +79,10 @@ Summary:`;
     
     console.log(`[Google AI] Generated summary (${summary.length} chars)`);
     return summary.trim();
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Check if it's a rate limit error (429)
-    if (error.message?.includes('429') || error.message?.includes('quota')) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (errorMessage?.includes('429') || errorMessage?.includes('quota')) {
       console.warn('[Google AI] Rate limit hit, trying next key...');
       
       // Try with next API key if we have retries left
@@ -91,7 +96,7 @@ Summary:`;
       return null;
     }
     
-    console.error('[Google AI] Analysis failed:', error.message);
+    console.error('[Google AI] Analysis failed:', errorMessage);
     return null;
   }
 }
@@ -112,7 +117,13 @@ export interface AIContactAnalysis {
 
 export async function analyzeConversationWithStageRecommendation(
   messages: Array<{ from: string; text: string; timestamp?: Date }>,
-  pipelineStages: Array<{ name: string; type: string; description?: string | null }>,
+  pipelineStages: Array<{ 
+    name: string; 
+    type: string; 
+    description?: string | null;
+    leadScoreMin?: number;
+    leadScoreMax?: number;
+  }>,
   retries = 2
 ): Promise<AIContactAnalysis | null> {
   const apiKey = keyManager.getNextKey();
@@ -129,11 +140,26 @@ export async function analyzeConversationWithStageRecommendation(
       .map(msg => `${msg.from}: ${msg.text}`)
       .join('\n');
 
+    // Enhanced stage descriptions with lead score ranges
     const stageDescriptions = pipelineStages
-      .map((s, i) => `${i + 1}. ${s.name} (${s.type})${s.description ? ': ' + s.description : ''}`)
+      .map((s, i) => {
+        let desc = `${i + 1}. ${s.name} (${s.type})`;
+        
+        // Add score range if available
+        if (s.leadScoreMin !== undefined && s.leadScoreMax !== undefined) {
+          desc += ` [Score: ${s.leadScoreMin}-${s.leadScoreMax}]`;
+        }
+        
+        // Add description if available
+        if (s.description) {
+          desc += `: ${s.description}`;
+        }
+        
+        return desc;
+      })
       .join('\n');
 
-    const prompt = `Analyze this customer conversation and assign them to the most appropriate sales/support stage.
+    const prompt = `Analyze this customer conversation and intelligently assign them to the most appropriate sales/support stage.
 
 Available Pipeline Stages:
 ${stageDescriptions}
@@ -144,15 +170,31 @@ ${conversationText}
 Analyze the conversation and determine:
 1. Which stage best fits this contact's current position in the customer journey
 2. Their engagement level and intent (lead score 0-100)
+   - Use the stage score ranges as guides for appropriate scoring
+   - Score should reflect: conversation maturity, customer intent, engagement level, and commitment signals
 3. Their status (NEW, CONTACTED, QUALIFIED, PROPOSAL_SENT, NEGOTIATING, WON, LOST, UNRESPONSIVE)
+   - If the conversation indicates a CLOSED deal → status: WON
+   - If the conversation indicates LOST opportunity → status: LOST
 4. Your confidence in this assessment (0-100)
+
+Scoring Guidelines:
+- 0-30: Cold leads, initial contact, minimal engagement, just browsing
+- 31-60: Warm leads, asking questions, showing interest, early qualification
+- 61-80: Hot leads, high engagement, discussing specifics, budget/timeline mentioned
+- 81-100: Ready to close, strong commitment signals, final negotiations, deal imminent
 
 Consider:
 - Conversation maturity (new inquiry vs ongoing discussion)
 - Customer intent (browsing vs ready to buy)
 - Engagement level (responsive vs unresponsive)
-- Specific requests or commitments made
-- Timeline and urgency
+- Specific requests or commitments made (pricing, timeline, contracts)
+- Timeline and urgency indicators
+- Buying signals (budget discussed, decision maker involved, timeline set)
+
+IMPORTANT:
+- If customer has AGREED TO BUY, CLOSED THE DEAL, or SIGNED: leadStatus MUST be "WON" (score 85-100)
+- If customer has REJECTED, DECLINED, or SAID NO: leadStatus MUST be "LOST" (score 0-20)
+- Match your lead score to the appropriate stage's score range when possible
 
 Respond ONLY with valid JSON (no markdown, no explanation):
 {
@@ -161,7 +203,7 @@ Respond ONLY with valid JSON (no markdown, no explanation):
   "leadScore": 0-100,
   "leadStatus": "NEW|CONTACTED|QUALIFIED|PROPOSAL_SENT|NEGOTIATING|WON|LOST|UNRESPONSIVE",
   "confidence": 0-100,
-  "reasoning": "brief explanation of stage choice"
+  "reasoning": "brief explanation of stage choice and score"
 }`;
 
     const result = await model.generateContent(prompt);
@@ -178,9 +220,10 @@ Respond ONLY with valid JSON (no markdown, no explanation):
     console.log(`[Google AI] Stage recommendation: ${analysis.recommendedStage} (confidence: ${analysis.confidence}%)`);
     
     return analysis;
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Check if it's a rate limit error (429)
-    if (error.message?.includes('429') || error.message?.includes('quota')) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (errorMessage?.includes('429') || errorMessage?.includes('quota')) {
       console.warn('[Google AI] Rate limit hit, trying next key...');
       
       // Try with next API key if we have retries left
@@ -194,7 +237,7 @@ Respond ONLY with valid JSON (no markdown, no explanation):
       return null;
     }
     
-    console.error('[Google AI] Analysis failed:', error.message);
+    console.error('[Google AI] Analysis failed:', errorMessage);
     return null;
   }
 }

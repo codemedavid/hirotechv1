@@ -100,6 +100,7 @@ model FacebookPage {
   contacts            Contact[]
   conversations       Conversation[]
   campaigns           Campaign[]
+  syncJobs            SyncJob[]
   teamPermissions     TeamMemberPermission[]
 }
 
@@ -166,6 +167,8 @@ model Contact {
   @@unique([messengerPSID, facebookPageId])
   @@index([instagramSID])
   @@index([pipelineId, stageId])
+  @@index([stageId, stageEnteredAt]) // Optimize stage contact queries with ORDER BY stageEnteredAt
+  @@index([stageId, leadScore]) // Optimize stage contact queries sorted by lead score
   @@index([leadStatus])
   @@index([organizationId])
 }
@@ -246,6 +249,10 @@ model PipelineStage {
   
   type        StageType @default(IN_PROGRESS)
   
+  // Lead score ranges for intelligent auto-assignment
+  leadScoreMin Int      @default(0)   // Minimum lead score for this stage (0-100)
+  leadScoreMax Int      @default(100) // Maximum lead score for this stage (0-100)
+  
   pipelineId  String
   pipeline    Pipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
   
@@ -257,7 +264,7 @@ model PipelineStage {
   updatedAt   DateTime @updatedAt
   
   @@unique([pipelineId, order])
-  @@index([pipelineId])
+  @@index([pipelineId, order]) // Optimize stage ordering queries
 }
 
 enum StageType {
@@ -300,6 +307,7 @@ enum ActivityType {
   STAGE_CHANGED
   STATUS_CHANGED
   TAG_ADDED
+  TAG_REMOVED
   MESSAGE_SENT
   MESSAGE_RECEIVED
   CAMPAIGN_SENT
@@ -543,8 +551,9 @@ model WebhookEvent {
 // ============================================
 
 model SyncJob {
-  id             String    @id @default(cuid())
+  id             String        @id @default(cuid())
   facebookPageId String
+  facebookPage   FacebookPage  @relation(fields: [facebookPageId], references: [id], onDelete: Cascade)
   status         SyncJobStatus @default(PENDING)
   
   totalContacts  Int       @default(0)
