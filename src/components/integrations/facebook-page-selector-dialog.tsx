@@ -14,7 +14,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { Facebook, Instagram, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Facebook, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -44,10 +44,15 @@ export function FacebookPageSelectorDialog({
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   
-  // Pagination states
+  // Pagination states for available pages
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const itemsPerPage = 10;
+  
+  // Pagination states for connected pages
+  const [connectedCurrentPage, setConnectedCurrentPage] = useState(1);
+  const [connectedSearchQuery, setConnectedSearchQuery] = useState('');
+  const connectedItemsPerPage = 5;
 
   // Fetch pages when dialog opens
   useEffect(() => {
@@ -70,9 +75,10 @@ export function FacebookPageSelectorDialog({
 
       const data = await response.json();
       setPages(data.pages);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error fetching pages:', error);
-      toast.error(error.message || 'Failed to fetch Facebook pages');
+      const message = error instanceof Error ? error.message : 'Failed to fetch Facebook pages';
+      toast.error(message);
       onOpenChange(false);
     } finally {
       setIsLoading(false);
@@ -89,16 +95,32 @@ export function FacebookPageSelectorDialog({
     setSelectedPageIds(newSelected);
   }
 
-  function toggleAll() {
-    if (selectedPageIds.size === pages.filter(p => !p.isConnected).length) {
+  // Select all unconnected pages across all pagination pages
+  function toggleAllPages() {
+    const allUnconnectedIds = pages.filter(p => !p.isConnected).map(p => p.id);
+    if (selectedPageIds.size === allUnconnectedIds.length) {
       // Unselect all
       setSelectedPageIds(new Set());
     } else {
-      // Select all unconnected pages
-      setSelectedPageIds(
-        new Set(pages.filter(p => !p.isConnected).map(p => p.id))
-      );
+      // Select all unconnected pages across all pages
+      setSelectedPageIds(new Set(allUnconnectedIds));
     }
+  }
+
+  // Select only pages visible on current page
+  function toggleCurrentPage() {
+    const currentPageIds = paginatedPages.map(p => p.id);
+    const allSelected = currentPageIds.every(id => selectedPageIds.has(id));
+    
+    const newSelected = new Set(selectedPageIds);
+    if (allSelected) {
+      // Deselect current page items
+      currentPageIds.forEach(id => newSelected.delete(id));
+    } else {
+      // Select current page items
+      currentPageIds.forEach(id => newSelected.add(id));
+    }
+    setSelectedPageIds(newSelected);
   }
 
   async function handleSave() {
@@ -140,9 +162,10 @@ export function FacebookPageSelectorDialog({
 
       onOpenChange(false);
       onPagesConnected();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error saving pages:', error);
-      toast.error(error.message || 'Failed to connect pages');
+      const message = error instanceof Error ? error.message : 'Failed to connect pages';
+      toast.error(message);
     } finally {
       setIsSaving(false);
     }
@@ -152,7 +175,7 @@ export function FacebookPageSelectorDialog({
   const availablePages = pages.filter(p => !p.isConnected);
   const connectedPages = pages.filter(p => p.isConnected);
   
-  // Filter by search query
+  // Filter by search query (available pages)
   const filteredPages = searchQuery
     ? availablePages.filter(p => 
         p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -160,16 +183,34 @@ export function FacebookPageSelectorDialog({
       )
     : availablePages;
   
-  // Pagination logic
+  // Pagination logic (available pages)
   const totalPages = Math.ceil(filteredPages.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const paginatedPages = filteredPages.slice(startIndex, endIndex);
   
+  // Filter by search query (connected pages)
+  const filteredConnectedPages = connectedSearchQuery
+    ? connectedPages.filter(p => 
+        p.name.toLowerCase().includes(connectedSearchQuery.toLowerCase()) ||
+        p.id.includes(connectedSearchQuery)
+      )
+    : connectedPages;
+  
+  // Pagination logic (connected pages)
+  const totalConnectedPages = Math.ceil(filteredConnectedPages.length / connectedItemsPerPage);
+  const connectedStartIndex = (connectedCurrentPage - 1) * connectedItemsPerPage;
+  const connectedEndIndex = connectedStartIndex + connectedItemsPerPage;
+  const paginatedConnectedPages = filteredConnectedPages.slice(connectedStartIndex, connectedEndIndex);
+  
   // Reset to page 1 when search changes
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery]);
+  
+  useEffect(() => {
+    setConnectedCurrentPage(1);
+  }, [connectedSearchQuery]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -196,17 +237,36 @@ export function FacebookPageSelectorDialog({
                   <div className="flex items-center justify-between">
                     <Label className="text-sm font-medium">
                       Available Pages ({filteredPages.length} of {availablePages.length})
+                      {selectedPageIds.size > 0 && (
+                        <span className="ml-2 text-primary">
+                          • {selectedPageIds.size} selected
+                        </span>
+                      )}
                     </Label>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={toggleAll}
-                      className="text-xs"
-                    >
-                      {selectedPageIds.size === availablePages.length
-                        ? 'Unselect All'
-                        : 'Select All'}
-                    </Button>
+                    <div className="flex gap-2">
+                      {totalPages > 1 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={toggleCurrentPage}
+                          className="text-xs"
+                        >
+                          {paginatedPages.every(p => selectedPageIds.has(p.id))
+                            ? 'Deselect Page'
+                            : 'Select Page'}
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={toggleAllPages}
+                        className="text-xs font-semibold"
+                      >
+                        {selectedPageIds.size === availablePages.length
+                          ? 'Deselect All'
+                          : 'Select All Pages'}
+                      </Button>
+                    </div>
                   </div>
                   
                   {/* Search bar */}
@@ -256,28 +316,49 @@ export function FacebookPageSelectorDialog({
                 
                 {/* Pagination Controls */}
                 {totalPages > 1 && (
-                  <div className="flex items-center justify-between border-t pt-3">
-                    <p className="text-sm text-muted-foreground">
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-2 border-t pt-3 bg-muted/30 -mx-4 px-4 py-3 rounded-b-lg">
+                    <p className="text-sm font-medium text-muted-foreground">
                       Page {currentPage} of {totalPages} • Showing {startIndex + 1}-{Math.min(endIndex, filteredPages.length)} of {filteredPages.length}
                     </p>
                     <div className="flex items-center gap-2">
                       <Button
                         variant="outline"
                         size="sm"
+                        onClick={() => setCurrentPage(1)}
+                        disabled={currentPage === 1}
+                        className="h-8"
+                      >
+                        First
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                         disabled={currentPage === 1}
+                        className="h-8"
                       >
                         <ChevronLeft className="h-4 w-4" />
-                        Previous
                       </Button>
+                      <span className="text-sm font-semibold min-w-[60px] text-center">
+                        {currentPage} / {totalPages}
+                      </span>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                         disabled={currentPage === totalPages}
+                        className="h-8"
                       >
-                        Next
                         <ChevronRight className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(totalPages)}
+                        disabled={currentPage === totalPages}
+                        className="h-8"
+                      >
+                        Last
                       </Button>
                     </div>
                   </div>
@@ -286,24 +367,96 @@ export function FacebookPageSelectorDialog({
             )}
 
             {connectedPages.length > 0 && (
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-muted-foreground">
-                  Already Connected ({connectedPages.length})
-                </Label>
-                <div className="space-y-2">
-                  {connectedPages.map((page) => (
-                    <div
-                      key={page.id}
-                      className="flex items-center justify-between rounded-lg border p-3 bg-muted/30"
-                    >
-                      <div className="flex items-center gap-2">
-                        <CheckCircle2 className="h-4 w-4 text-green-600" />
-                        <span className="text-sm font-medium">{page.name}</span>
-                      </div>
-                      <Badge variant="secondary">Connected</Badge>
-                    </div>
-                  ))}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium text-muted-foreground">
+                    Already Connected ({filteredConnectedPages.length} of {connectedPages.length})
+                  </Label>
                 </div>
+                
+                {/* Search bar for connected pages */}
+                <Input
+                  type="text"
+                  placeholder="Search connected pages..."
+                  value={connectedSearchQuery}
+                  onChange={(e) => setConnectedSearchQuery(e.target.value)}
+                  className="w-full"
+                />
+                
+                {/* Connected pages list with scroll */}
+                <div className="max-h-[250px] overflow-y-auto space-y-2 rounded-lg border p-3 bg-muted/20">
+                  {paginatedConnectedPages.length > 0 ? (
+                    paginatedConnectedPages.map((page) => (
+                      <div
+                        key={page.id}
+                        className="flex items-center justify-between rounded-lg border p-3 bg-background"
+                      >
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <span className="text-sm font-medium truncate block">{page.name}</span>
+                            <span className="text-xs text-muted-foreground">ID: {page.id}</span>
+                          </div>
+                        </div>
+                        <Badge variant="secondary" className="flex-shrink-0">Connected</Badge>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-center text-sm text-muted-foreground py-4">
+                      No connected pages match your search
+                    </p>
+                  )}
+                </div>
+                
+                {/* Pagination Controls for Connected Pages */}
+                {totalConnectedPages > 1 && (
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-2 border-t pt-3 bg-muted/20 px-3 py-2 rounded-b-lg">
+                    <p className="text-xs font-medium text-muted-foreground">
+                      Page {connectedCurrentPage} of {totalConnectedPages} • Showing {connectedStartIndex + 1}-{Math.min(connectedEndIndex, filteredConnectedPages.length)} of {filteredConnectedPages.length}
+                    </p>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setConnectedCurrentPage(1)}
+                        disabled={connectedCurrentPage === 1}
+                        className="h-7 px-2 text-xs"
+                      >
+                        First
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setConnectedCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={connectedCurrentPage === 1}
+                        className="h-7 px-2"
+                      >
+                        <ChevronLeft className="h-3 w-3" />
+                      </Button>
+                      <span className="text-xs font-semibold min-w-[50px] text-center px-2">
+                        {connectedCurrentPage} / {totalConnectedPages}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setConnectedCurrentPage(p => Math.min(totalConnectedPages, p + 1))}
+                        disabled={connectedCurrentPage === totalConnectedPages}
+                        className="h-7 px-2"
+                      >
+                        <ChevronRight className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setConnectedCurrentPage(totalConnectedPages)}
+                        disabled={connectedCurrentPage === totalConnectedPages}
+                        className="h-7 px-2 text-xs"
+                      >
+                        Last
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
