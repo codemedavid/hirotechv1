@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/db';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await auth();
     if (!session?.user) {
@@ -15,9 +15,10 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json(tags);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Get tags error:', error);
-    return NextResponse.json({ error: 'Failed to fetch tags' }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch tags';
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
 
@@ -28,7 +29,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
+    const body = await request.json() as {
+      name?: string;
+      description?: string;
+      color?: string;
+    };
     const { name, description, color } = body;
 
     if (!name) {
@@ -45,15 +50,17 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json(tag);
-  } catch (error: any) {
-    if (error.code === 'P2002') {
+  } catch (error: unknown) {
+    // Check if it's a Prisma unique constraint error
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002') {
       return NextResponse.json(
         { error: 'Tag with this name already exists' },
         { status: 400 }
       );
     }
     console.error('Create tag error:', error);
-    return NextResponse.json({ error: 'Failed to create tag' }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : 'Failed to create tag';
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
 

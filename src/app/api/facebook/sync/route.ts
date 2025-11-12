@@ -22,10 +22,11 @@ export async function POST(request: NextRequest) {
     const result = await syncContacts(facebookPageId);
 
     return NextResponse.json(result);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Sync error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to sync contacts';
     return NextResponse.json(
-      { error: error.message || 'Failed to sync contacts' },
+      { error: errorMessage },
       { status: 500 }
     );
   }

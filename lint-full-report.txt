@@ -1,0 +1,146 @@
+
+> hiro@0.1.0 lint
+> eslint
+
+
+C:\Users\bigcl\Downloads\hiro\scripts\create-test-user.ts
+  44:11  warning  'user' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\bigcl\Downloads\hiro\src\app\(dashboard)\pipelines\[id]\page.tsx
+  63:6  warning  React Hook useEffect has a missing dependency: 'fetchPipeline'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\bigcl\Downloads\hiro\src\app\(dashboard)\tags\page.tsx
+  81:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\bigcl\Downloads\hiro\src\app\(dashboard)\tags\page.tsx:81:5
+  79 |
+  80 |   useEffect(() => {
+> 81 |     fetchTags().catch(console.error);
+     |     ^^^^^^^^^ Avoid calling setState() directly within an effect
+  82 |   }, []);
+  83 |
+  84 |   // Update edit color when editing tag changes                                         react-hooks/set-state-in-effect
+  87:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\bigcl\Downloads\hiro\src\app\(dashboard)\tags\page.tsx:87:7
+  85 |   useEffect(() => {
+  86 |     if (editingTag) {
+> 87 |       setEditColor(editingTag.color);
+     |       ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  88 |     } else {
+  89 |       setEditColor('#64748b'); // Reset to default
+  90 |     }  react-hooks/set-state-in-effect
+
+C:\Users\bigcl\Downloads\hiro\src\app\api\facebook\pages\route.ts
+  6:11  warning  'FacebookPage' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\bigcl\Downloads\hiro\src\app\api\pipelines\route.ts
+  6:27  warning  'request' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\bigcl\Downloads\hiro\src\app\api\tags\route.ts
+  5:27  warning  'request' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\bigcl\Downloads\hiro\src\app\api\templates\[id]\route.ts
+  117:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\bigcl\Downloads\hiro\src\app\api\templates\bulk-delete\route.ts
+  72:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\bigcl\Downloads\hiro\src\app\api\webhooks\facebook\route.ts
+   80:45  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  215:45  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  233:41  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  262:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\bigcl\Downloads\hiro\src\auth.ts
+    5:15  warning  'User' is defined but never used          @typescript-eslint/no-unused-vars
+    5:21  warning  'Role' is defined but never used          @typescript-eslint/no-unused-vars
+   96:31  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   97:41  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   98:32  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  104:26  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  105:26  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  106:26  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  107:26  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\bigcl\Downloads\hiro\src\components\contacts\activity-timeline.tsx
+  21:37  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\bigcl\Downloads\hiro\src\components\contacts\contacts-table.tsx
+   99:10  warning  'allContactIds' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  234:21  error    Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+  255:14  warning  'error' is defined but never used                   @typescript-eslint/no-unused-vars
+  413:30  error    Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+
+C:\Users\bigcl\Downloads\hiro\src\components\contacts\stage-filter.tsx
+  56:7  warning  'selectedPipeline' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\bigcl\Downloads\hiro\src\components\integrations\connected-pages-list.tsx
+  332:47  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  332:69  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+
+C:\Users\bigcl\Downloads\hiro\src\components\integrations\facebook-page-selector-dialog.tsx
+   17:20  warning  'Instagram' is defined but never used                                                                          @typescript-eslint/no-unused-vars
+   51:6   warning  React Hook useEffect has a missing dependency: 'fetchPages'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+   67:21  error    Unexpected any. Specify a different type                                                                       @typescript-eslint/no-explicit-any
+  137:21  error    Unexpected any. Specify a different type                                                                       @typescript-eslint/no-explicit-any
+
+C:\Users\bigcl\Downloads\hiro\src\components\layout\header.tsx
+  25:5  warning  Unused eslint-disable directive (no problems were reported from 'react-hooks/exhaustive-deps')
+
+C:\Users\bigcl\Downloads\hiro\src\components\settings\profile-form.tsx
+  12:27  warning  'User' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\bigcl\Downloads\hiro\src\lib\campaigns\send.ts
+   34:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   36:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   61:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   71:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   73:37  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  101:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  103:37  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  119:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  123:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  125:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  324:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\bigcl\Downloads\hiro\src\lib\facebook\auth.ts
+  48:12  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\bigcl\Downloads\hiro\src\lib\facebook\client.ts
+   39:36  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   74:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   96:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  143:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  161:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  203:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  219:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  236:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  246:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  288:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  304:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  321:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\bigcl\Downloads\hiro\src\lib\facebook\sync-contacts.ts
+   46:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   85:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  105:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  141:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  199:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  219:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+✖ 66 problems (51 errors, 15 warnings)
+  0 errors and 1 warning potentially fixable with the `--fix` option.
+

@@ -114,7 +114,7 @@ export async function DELETE(
     });
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Delete template error:', error);
     return NextResponse.json(
       { error: 'Failed to delete template' },

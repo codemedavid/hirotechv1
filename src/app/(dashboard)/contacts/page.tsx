@@ -46,8 +46,31 @@ async function getContacts(params: SearchParams) {
   const skip = (page - 1) * limit;
 
   // Using Prisma.ContactWhereInput type would be ideal, but we'll use Record for flexibility
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const where: Record<string, any> = {
+  interface ContactWhereInput {
+    organizationId: string;
+    OR?: Array<{
+      firstName?: { contains: string; mode: 'insensitive' };
+      lastName?: { contains: string; mode: 'insensitive' };
+    }>;
+    stageId?: string;
+    tags?: { hasSome: string[] } | { has: string };
+    facebookPage?: { id: string };
+    createdAt?: {
+      gte?: Date;
+      lte?: Date;
+    };
+    AND?: Array<{
+      tags: { has: string };
+    }>;
+    hasMessenger?: boolean;
+    hasInstagram?: boolean;
+    leadScore?: {
+      gte?: number;
+      lte?: number;
+    };
+  }
+
+  const where: ContactWhereInput = {
     organizationId: session.user.organizationId,
     ...(params.search && {
       OR: [
@@ -59,7 +82,7 @@ async function getContacts(params: SearchParams) {
 
   // Filter by page
   if (params.pageId) {
-    where.facebookPageId = params.pageId;
+    where.facebookPage = { id: params.pageId };
   }
 
   // Filter by date range
@@ -114,8 +137,13 @@ async function getContacts(params: SearchParams) {
   // Determine orderBy
   const sortBy = params.sortBy || 'date';
   const sortOrder = (params.sortOrder || 'desc') as 'asc' | 'desc';
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let orderBy: Record<string, any> = { createdAt: sortOrder };
+
+  type ContactOrderBy = 
+    | { createdAt: 'asc' | 'desc' }
+    | { firstName: 'asc' | 'desc' }
+    | { leadScore: 'asc' | 'desc' };
+
+  let orderBy: ContactOrderBy = { createdAt: sortOrder };
 
   if (sortBy === 'name') {
     orderBy = { firstName: sortOrder };

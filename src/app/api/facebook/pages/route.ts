@@ -3,12 +3,6 @@ import { auth } from '@/auth';
 import { prisma } from '@/lib/db';
 import { getUserPages, getPageAccessToken, getInstagramBusinessAccount } from '@/lib/facebook/auth';
 
-interface FacebookPage {
-  id: string;
-  name: string;
-  access_token: string;
-}
-
 interface SelectedPage {
   id: string;
   name: string;

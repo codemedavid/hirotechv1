@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
       success: true,
       deletedCount: result.count,
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Bulk delete templates error:', error);
     return NextResponse.json(
       { error: 'Failed to delete templates' },

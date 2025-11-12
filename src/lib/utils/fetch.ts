@@ -3,7 +3,7 @@
  * Use this instead of fetch() + .json() to avoid "Unexpected token '<'" errors
  */
 
-export interface FetchResponse<T = any> {
+export interface FetchResponse<T = unknown> {
   ok: boolean;
   status: number;
   data?: T;
@@ -14,7 +14,7 @@ export interface FetchResponse<T = any> {
  * Safely fetch and parse JSON response
  * Handles cases where server returns HTML instead of JSON
  */
-export async function fetchJSON<T = any>(
+export async function fetchJSON<T = unknown>(
   url: string,
   options?: RequestInit
 ): Promise<FetchResponse<T>> {
@@ -26,7 +26,7 @@ export async function fetchJSON<T = any>(
     
     if (!contentType?.includes('application/json')) {
       // Response is not JSON (likely HTML error page)
-      const text = await response.text();
+      await response.text();
       
       return {
         ok: false,
@@ -38,21 +38,22 @@ export async function fetchJSON<T = any>(
     }
 
     // Safe to parse as JSON
-    const data = await response.json();
+    const data = await response.json() as T;
 
     return {
       ok: response.ok,
       status: response.status,
       data: response.ok ? data : undefined,
-      error: !response.ok ? (data.error || data.message || 'Request failed') : undefined,
+      error: !response.ok ? ((data as { error?: string; message?: string }).error || (data as { message?: string }).message || 'Request failed') : undefined,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Fetch error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Network error occurred';
     
     return {
       ok: false,
       status: 0,
-      error: error.message || 'Network error occurred',
+      error: errorMessage,
     };
   }
 }
@@ -61,7 +62,7 @@ export async function fetchJSON<T = any>(
  * Fetch with automatic error toast
  * Use in components with toast support
  */
-export async function fetchWithToast<T = any>(
+export async function fetchWithToast<T = unknown>(
   url: string,
   options?: RequestInit,
   errorMessage = 'Request failed'

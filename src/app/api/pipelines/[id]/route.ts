@@ -39,10 +39,11 @@ export async function GET(
     }
 
     return NextResponse.json(pipeline);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Get pipeline error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch pipeline';
     return NextResponse.json(
-      { error: 'Failed to fetch pipeline' },
+      { error: errorMessage },
       { status: 500 }
     );
   }
@@ -64,10 +65,11 @@ export async function DELETE(
     });
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Delete pipeline error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to delete pipeline';
     return NextResponse.json(
-      { error: 'Failed to delete pipeline' },
+      { error: errorMessage },
       { status: 500 }
     );
   }

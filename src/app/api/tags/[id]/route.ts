@@ -26,9 +26,10 @@ export async function PATCH(
     });
 
     return NextResponse.json(tag);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Update tag error:', error);
-    return NextResponse.json({ error: 'Failed to update tag' }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : 'Failed to update tag';
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
 
@@ -48,9 +49,10 @@ export async function DELETE(
     });
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Delete tag error:', error);
-    return NextResponse.json({ error: 'Failed to delete tag' }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : 'Failed to delete tag';
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
 

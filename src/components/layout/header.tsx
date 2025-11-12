@@ -22,7 +22,7 @@ export function Header() {
   // Mark as mounted after first render
   useEffect(() => {
     setIsMounted(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   const getInitials = (name?: string | null) => {
