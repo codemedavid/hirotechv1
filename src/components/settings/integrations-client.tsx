@@ -1,14 +1,12 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Facebook, Search, X, Users } from 'lucide-react';
-import { toast } from 'sonner';
+import { Facebook, Users } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { useFacebookOAuth } from '@/hooks/use-facebook-oauth';
 
 // Code-split heavy components for better performance
 const FacebookPageSelectorDialog = dynamic(
@@ -63,120 +61,43 @@ const FacebookDiagnosticPanel = dynamic(
   }
 );
 
+import type { ConnectedPage } from '@/hooks/use-connected-pages';
+import type { SyncJob } from '@/hooks/use-sync-jobs';
+
 interface IntegrationsClientProps {
   initialTotalContacts: number;
+  initialPages?: ConnectedPage[];
+  initialContactCounts?: Record<string, number>;
+  initialActiveSyncJobs?: Record<string, SyncJob>;
 }
 
-export function IntegrationsClient({ initialTotalContacts }: IntegrationsClientProps) {
-  const [showPageSelector, setShowPageSelector] = useState(false);
-  const [userAccessToken, setUserAccessToken] = useState<string>('');
+export function IntegrationsClient({
+  initialTotalContacts,
+  initialPages = [],
+  initialContactCounts = {},
+  initialActiveSyncJobs = {},
+}: IntegrationsClientProps) {
   const [refreshKey, setRefreshKey] = useState(0);
-  const [searchQuery, setSearchQuery] = useState('');
   const [totalContacts, setTotalContacts] = useState<number>(initialTotalContacts);
   const [isLoadingContacts, setIsLoadingContacts] = useState(false);
   const [appOrigin, setAppOrigin] = useState('');
-  const searchParams = useSearchParams();
+
+  // Use OAuth hook
+  const {
+    token: userAccessToken,
+    showPageSelector,
+    setShowPageSelector,
+    connectFacebook,
+    resetOAuth,
+  } = useFacebookOAuth();
 
   // Set appOrigin after hydration to avoid mismatch
   useEffect(() => {
     setAppOrigin(window.location.origin);
   }, []);
 
-  useEffect(() => {
-    // Handle OAuth callback
-    const facebookAuth = searchParams.get('facebook_auth');
-    const fbToken = searchParams.get('fb_token');
-    const error = searchParams.get('error');
-    const errorDetails = searchParams.get('error_details');
-    let hasHandled = false;
-
-    // Use setTimeout to avoid setState in effect warning
-    if (error && !hasHandled) {
-      hasHandled = true;
-      let errorMessage = 'Failed to connect Facebook';
-      switch (error) {
-        case 'access_denied':
-          errorMessage = 'Facebook authorization was cancelled';
-          break;
-        case 'missing_code':
-          errorMessage = 'Invalid Facebook response';
-          break;
-        case 'invalid_state':
-          errorMessage = 'Security validation failed';
-          break;
-        case 'callback_failed':
-          errorMessage = errorDetails 
-            ? `Failed to complete Facebook connection: ${decodeURIComponent(errorDetails)}`
-            : 'Failed to complete Facebook connection. Check server logs for details.';
-          break;
-      }
-      toast.error(errorMessage, { duration: 10000 });
-      // Clear error from URL
-      window.history.replaceState({}, '', '/settings/integrations');
-    }
-
-    if (facebookAuth === 'success' && fbToken && !hasHandled) {
-      hasHandled = true;
-      setTimeout(() => {
-        setUserAccessToken(fbToken);
-        setShowPageSelector(true);
-        // Clear params from URL
-        window.history.replaceState({}, '', '/settings/integrations');
-      }, 0);
-    }
-  }, [searchParams]);
-
-  function handleConnectFacebook() {
-    // Open OAuth in popup window for better UX
-    // Optimized for standard screen sizes with scrollbars enabled
-    const width = 600;
-    const height = 600;
-    const left = window.screen.width / 2 - width / 2;
-    const top = window.screen.height / 2 - height / 2;
-    
-    const popup = window.open(
-      '/api/facebook/oauth?popup=true',
-      'Facebook Login',
-      `width=${width},height=${height},left=${left},top=${top},toolbar=no,location=no,status=no,menubar=no,scrollbars=yes,resizable=yes`
-    );
-
-    // Listen for popup to close or send message
-    const checkPopup = setInterval(() => {
-      if (popup && popup.closed) {
-        clearInterval(checkPopup);
-        // Popup closed, check for success in URL or reload to check connection
-        console.log('Facebook OAuth popup closed');
-        // Trigger a refresh of connected pages list
-        setRefreshKey(prev => prev + 1);
-      }
-    }, 500);
-
-    // Listen for messages from popup
-    const handleMessage = (event: MessageEvent) => {
-      // Verify origin for security
-      if (event.origin !== window.location.origin) return;
-      
-      if (event.data.type === 'FACEBOOK_AUTH_SUCCESS') {
-        console.log('Facebook auth successful via popup');
-        if (event.data.token) {
-          setUserAccessToken(event.data.token);
-          setShowPageSelector(true);
-        }
-        if (popup) popup.close();
-        window.removeEventListener('message', handleMessage);
-      } else if (event.data.type === 'FACEBOOK_AUTH_ERROR') {
-        console.error('Facebook auth error:', event.data.error);
-        toast.error(event.data.error || 'Failed to connect Facebook');
-        if (popup) popup.close();
-        window.removeEventListener('message', handleMessage);
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-  }
-
   function handlePagesConnected() {
-    setUserAccessToken('');
+    resetOAuth();
     setRefreshKey(prev => prev + 1);
   }
 
@@ -240,28 +161,6 @@ export function IntegrationsClient({ initialTotalContacts }: IntegrationsClientP
         </CardContent>
       </Card>
 
-      {/* Search Box */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          type="text"
-          placeholder="Search connected pages by name, ID, or Instagram username..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10 pr-10"
-        />
-        {searchQuery && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setSearchQuery('')}
-            className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
-          >
-            <X className="h-4 w-4" />
-            <span className="sr-only">Clear search</span>
-          </Button>
-        )}
-      </div>
 
       <Card>
         <CardHeader>
@@ -274,7 +173,7 @@ export function IntegrationsClient({ initialTotalContacts }: IntegrationsClientP
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button onClick={handleConnectFacebook} size="lg">
+          <Button onClick={connectFacebook} size="lg">
             <Facebook className="mr-2 h-5 w-5" />
             Connect with Facebook
           </Button>
@@ -285,25 +184,14 @@ export function IntegrationsClient({ initialTotalContacts }: IntegrationsClientP
         </CardContent>
       </Card>
 
-      <Suspense fallback={
-        <Card>
-          <CardHeader>
-            <CardTitle>Connected Pages</CardTitle>
-            <CardDescription>Loading your connected pages...</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-center py-12">
-              <LoadingSpinner className="h-8 w-8" />
-            </div>
-          </CardContent>
-        </Card>
-      }>
-        <ConnectedPagesList 
-          key={refreshKey} 
-          onRefresh={handleRefresh}
-          onSyncComplete={fetchTotalContacts}
-        />
-      </Suspense>
+      <ConnectedPagesList
+        key={refreshKey}
+        onRefresh={handleRefresh}
+        onSyncComplete={fetchTotalContacts}
+        initialPages={initialPages}
+        initialContactCounts={initialContactCounts}
+        initialActiveSyncJobs={initialActiveSyncJobs}
+      />
 
       <Card>
         <CardHeader>
@@ -371,12 +259,14 @@ export function IntegrationsClient({ initialTotalContacts }: IntegrationsClientP
         </CardContent>
       </Card>
 
-      <FacebookPageSelectorDialog
-        open={showPageSelector}
-        onOpenChange={setShowPageSelector}
-        userAccessToken={userAccessToken}
-        onPagesConnected={handlePagesConnected}
-      />
+      {userAccessToken && (
+        <FacebookPageSelectorDialog
+          open={showPageSelector}
+          onOpenChange={setShowPageSelector}
+          userAccessToken={userAccessToken}
+          onPagesConnected={handlePagesConnected}
+        />
+      )}
     </div>
   );
 }

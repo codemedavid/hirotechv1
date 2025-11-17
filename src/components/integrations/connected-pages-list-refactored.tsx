@@ -17,7 +17,6 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Facebook } from 'lucide-react';
 import { toast } from 'sonner';
 import type { ConnectedPage } from '@/hooks/use-connected-pages';
-import type { SyncJob } from '@/hooks/use-sync-jobs';
 import { useConnectedPages } from '@/hooks/use-connected-pages';
 import { useContactCounts } from '@/hooks/use-contact-counts';
 import { useSyncJobs } from '@/hooks/use-sync-jobs';
@@ -31,31 +30,17 @@ import { PagesPagination } from './pages-pagination';
 interface ConnectedPagesListProps {
   onRefresh?: () => void;
   onSyncComplete?: () => void;
-  initialPages?: ConnectedPage[];
-  initialContactCounts?: Record<string, number>;
-  initialActiveSyncJobs?: Record<string, SyncJob>;
 }
 
-export function ConnectedPagesList({
-  onRefresh,
-  onSyncComplete,
-  initialPages = [],
-  initialContactCounts = {},
-  initialActiveSyncJobs = {},
-}: ConnectedPagesListProps) {
-  const { pages, isLoading, refetch, disconnectPage } = useConnectedPages(initialPages);
+export function ConnectedPagesList({ onRefresh, onSyncComplete }: ConnectedPagesListProps) {
+  const { pages, isLoading, refetch, disconnectPage } = useConnectedPages();
   const pageIds = useMemo(() => pages.map((p) => p.id), [pages]);
   const { counts } = useContactCounts(pageIds);
   const { activeJobs, startSync, cancelSync } = useSyncJobs(pageIds);
 
-  // Use initial data if available, otherwise use fetched data
-  const displayPages = pages.length > 0 ? pages : initialPages;
-  const displayCounts = Object.keys(counts).length > 0 ? counts : initialContactCounts;
-  const displayActiveJobs = Object.keys(activeJobs).length > 0 ? activeJobs : initialActiveSyncJobs;
-
   // Search functionality with debouncing
   const { searchQuery, setSearchQuery, filteredItems: filteredPages } = useSearch(
-    displayPages,
+    pages,
     (page, query) =>
       page.pageName.toLowerCase().includes(query) ||
       page.pageId.includes(query) ||
@@ -82,7 +67,7 @@ export function ConnectedPagesList({
     clearSelection,
     isSelected,
     selectedPages,
-  } = useBulkOperations(displayPages);
+  } = useBulkOperations(pages);
 
   // State for disconnect dialogs
   const [pageToDisconnect, setPageToDisconnect] = useState<ConnectedPage | null>(null);
@@ -93,13 +78,13 @@ export function ConnectedPagesList({
 
   // Monitor sync completion
   useEffect(() => {
-    const completedJobs = Object.values(displayActiveJobs).filter(
+    const completedJobs = Object.values(activeJobs).filter(
       (job) => job.status === 'COMPLETED' || job.status === 'FAILED'
     );
     if (completedJobs.length > 0) {
       onSyncComplete?.();
     }
-  }, [displayActiveJobs, onSyncComplete]);
+  }, [activeJobs, onSyncComplete]);
 
   // Handle individual sync
   const handleSync = useCallback(
@@ -112,12 +97,12 @@ export function ConnectedPagesList({
   // Handle cancel sync
   const handleCancelSync = useCallback(
     (page: ConnectedPage) => {
-      const syncJob = displayActiveJobs[page.id];
+      const syncJob = activeJobs[page.id];
       if (syncJob) {
         cancelSync(syncJob.id);
       }
     },
-    [displayActiveJobs, cancelSync]
+    [activeJobs, cancelSync]
   );
 
   // Handle disconnect
@@ -200,8 +185,7 @@ export function ConnectedPagesList({
     }
   }, [selectedPageIds.size, selectedPages, disconnectPage, clearSelection, refetch, onRefresh]);
 
-  // Show loading only if we don't have initial data and are still loading
-  if (isLoading && initialPages.length === 0) {
+  if (isLoading) {
     return (
       <Card>
         <CardHeader>
@@ -217,7 +201,7 @@ export function ConnectedPagesList({
     );
   }
 
-  if (displayPages.length === 0) {
+  if (pages.length === 0) {
     return (
       <Card>
         <CardHeader>
@@ -269,9 +253,9 @@ export function ConnectedPagesList({
 
             {/* Pages List */}
             {paginatedPages.map((page) => {
-              const syncJob = displayActiveJobs[page.id];
+              const syncJob = activeJobs[page.id];
               const isSyncing = !!syncJob && (syncJob.status === 'PENDING' || syncJob.status === 'IN_PROGRESS');
-              const contactCount = displayCounts[page.id] ?? 0;
+              const contactCount = counts[page.id] ?? 0;
 
               return (
                 <ConnectedPageCard
