@@ -4,6 +4,16 @@ import { analyzeWithFallback } from '@/lib/ai/enhanced-analysis';
 import { autoAssignContactToPipeline } from '@/lib/pipelines/auto-assign';
 import { applyStageScoreRanges } from '@/lib/pipelines/stage-analyzer';
 
+interface FacebookMessage {
+  from?: {
+    id?: string;
+    name?: string;
+    username?: string;
+  };
+  message?: string;
+  created_time?: string;
+}
+
 interface SyncResult {
   success: boolean;
   synced: number;
@@ -88,8 +98,8 @@ export async function syncContacts(facebookPageId: string): Promise<SyncResult> 
           
           if (allMessages && allMessages.length > 0) {
             // Find a message from this participant
-            const userMessage = allMessages.find(
-              (msg: any) => msg.from?.id === participant.id
+            const userMessage = (allMessages as FacebookMessage[]).find(
+              (msg) => msg.from?.id === participant.id
             );
             
             if (userMessage?.from?.name) {
@@ -112,11 +122,11 @@ export async function syncContacts(facebookPageId: string): Promise<SyncResult> 
             try {
               console.log(`[Sync] Processing ${allMessages.length} messages for analysis`);
               
-              const messagesToAnalyze = allMessages
-                .filter((msg: any) => msg.message)
-                .map((msg: any) => ({
-                  from: msg.from?.name || msg.from?.id || 'Unknown',
-                  text: msg.message,
+              const messagesToAnalyze = (allMessages as FacebookMessage[])
+                .filter((msg) => msg.message)
+                .map((msg) => ({
+                  from: msg.from?.name || msg.from?.username || msg.from?.id || 'Unknown',
+                  text: msg.message || '',
                   timestamp: msg.created_time ? new Date(msg.created_time) : undefined
                 }))
                 .reverse(); // Oldest first for chronological analysis
@@ -196,9 +206,9 @@ export async function syncContacts(facebookPageId: string): Promise<SyncResult> 
           }
           
           syncedCount++;
-        } catch (error: any) {
+        } catch (error: unknown) {
           failedCount++;
-          const errorMessage = error.message || 'Unknown error';
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
           const errorCode = error instanceof FacebookApiError ? error.code : undefined;
           
           // Check if token is expired
@@ -216,7 +226,7 @@ export async function syncContacts(facebookPageId: string): Promise<SyncResult> 
         }
       }
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     const errorCode = error instanceof FacebookApiError ? error.code : undefined;
     
     // Check if token is expired
@@ -228,7 +238,7 @@ export async function syncContacts(facebookPageId: string): Promise<SyncResult> 
     errors.push({
       platform: 'Messenger',
       id: 'conversations',
-      error: error.message || 'Failed to fetch conversations',
+      error: error instanceof Error ? error.message : 'Failed to fetch conversations',
       code: errorCode,
     });
   }
@@ -255,8 +265,8 @@ export async function syncContacts(facebookPageId: string): Promise<SyncResult> 
             
             if (allMessages && allMessages.length > 0) {
               // Find a message from this participant
-              const userMessage = allMessages.find(
-                (msg: any) => msg.from?.id === participant.id
+              const userMessage = (allMessages as FacebookMessage[]).find(
+                (msg) => msg.from?.id === participant.id
               );
               
               if (userMessage?.from?.name) {
@@ -282,11 +292,11 @@ export async function syncContacts(facebookPageId: string): Promise<SyncResult> 
               try {
                 console.log(`[Sync] Processing ${allMessages.length} IG messages for analysis`);
                 
-                const messagesToAnalyze = allMessages
-                  .filter((msg: any) => msg.message)
-                  .map((msg: any) => ({
+                const messagesToAnalyze = (allMessages as FacebookMessage[])
+                  .filter((msg) => msg.message)
+                  .map((msg) => ({
                     from: msg.from?.name || msg.from?.username || msg.from?.id || 'Unknown',
-                    text: msg.message,
+                    text: msg.message || '',
                     timestamp: msg.created_time ? new Date(msg.created_time) : undefined
                   }))
                   .reverse(); // Oldest first for chronological analysis
@@ -383,9 +393,9 @@ export async function syncContacts(facebookPageId: string): Promise<SyncResult> 
             }
             
             syncedCount++;
-          } catch (error: any) {
+          } catch (error: unknown) {
             failedCount++;
-            const errorMessage = error.message || 'Unknown error';
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             const errorCode = error instanceof FacebookApiError ? error.code : undefined;
             
             // Check if token is expired
@@ -403,7 +413,7 @@ export async function syncContacts(facebookPageId: string): Promise<SyncResult> 
           }
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       const errorCode = error instanceof FacebookApiError ? error.code : undefined;
       
       // Check if token is expired
@@ -415,7 +425,7 @@ export async function syncContacts(facebookPageId: string): Promise<SyncResult> 
       errors.push({
         platform: 'Instagram',
         id: 'conversations',
-        error: error.message || 'Failed to fetch conversations',
+        error: error instanceof Error ? error.message : 'Failed to fetch conversations',
         code: errorCode,
       });
     }

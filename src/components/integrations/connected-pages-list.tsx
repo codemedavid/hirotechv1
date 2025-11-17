@@ -345,7 +345,7 @@ export function ConnectedPagesList({ onRefresh, onSyncComplete }: ConnectedPages
       try {
         await handleSync(page);
         successCount++;
-      } catch (error) {
+      } catch {
         failCount++;
       }
     }
@@ -380,7 +380,7 @@ export function ConnectedPagesList({ onRefresh, onSyncComplete }: ConnectedPages
         } else {
           failCount++;
         }
-      } catch (error) {
+      } catch {
         failCount++;
       }
     }
@@ -712,7 +712,7 @@ export function ConnectedPagesList({ onRefresh, onSyncComplete }: ConnectedPages
                         <Progress value={syncProgress} className="h-2 bg-blue-100 dark:bg-blue-900" />
                       )}
                       <div className="flex items-start gap-2 text-xs text-blue-600 dark:text-blue-400">
-                        <CheckCircle2 className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                        <CheckCircle2 className="h-3 w-3 mt-0.5 shrink-0" />
                         <p>
                           Syncing in background - safe to navigate away, refresh, or close this page. 
                           Progress will be saved automatically.
