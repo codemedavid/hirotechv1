@@ -55,7 +55,9 @@ export function useSupabasePipelineRealtime(pipelineId: string) {
           table: 'Pipeline'
         },
         (payload) => {
-          const changedPipelineId = payload.new?.id || payload.old?.id;
+          const newRecord = payload.new as { id?: string } | null;
+          const oldRecord = payload.old as { id?: string } | null;
+          const changedPipelineId = newRecord?.id || oldRecord?.id;
           if (changedPipelineId === pipelineId) {
             console.log('[Supabase Realtime] Pipeline changed:', payload.eventType);
             setUpdateSignal({
@@ -79,7 +81,9 @@ export function useSupabasePipelineRealtime(pipelineId: string) {
           table: 'PipelineStage'
         },
         (payload) => {
-          const changedPipelineId = payload.new?.pipelineId || payload.old?.pipelineId;
+          const newRecord = payload.new as { pipelineId?: string } | null;
+          const oldRecord = payload.old as { pipelineId?: string } | null;
+          const changedPipelineId = newRecord?.pipelineId || oldRecord?.pipelineId;
           if (changedPipelineId === pipelineId) {
             console.log('[Supabase Realtime] Stage changed:', payload.eventType);
             setUpdateSignal({
@@ -103,7 +107,9 @@ export function useSupabasePipelineRealtime(pipelineId: string) {
           table: 'PipelineAutomation'
         },
         (payload) => {
-          const changedPipelineId = payload.new?.pipelineId || payload.old?.pipelineId;
+          const newRecord = payload.new as { pipelineId?: string } | null;
+          const oldRecord = payload.old as { pipelineId?: string } | null;
+          const changedPipelineId = newRecord?.pipelineId || oldRecord?.pipelineId;
           if (changedPipelineId === pipelineId) {
             console.log('[Supabase Realtime] Automation changed:', payload.eventType);
             setUpdateSignal({

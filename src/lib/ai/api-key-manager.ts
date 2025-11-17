@@ -52,7 +52,7 @@ class ApiKeyManager {
       await prisma.apiKey.update({
         where: { id: keyId },
         data: { lastUsedAt: new Date() },
-      }).catch(err => {
+      }).catch((err: unknown) => {
         // Non-critical, just log
         console.warn('[ApiKeyManager] Failed to update lastUsedAt:', err);
       });
@@ -86,7 +86,7 @@ class ApiKeyManager {
         },
       });
 
-      this.activeKeyIds = activeKeys.map(k => k.id);
+      this.activeKeyIds = activeKeys.map((k) => k.id);
       this.lastRefresh = Date.now();
       
       if (this.activeKeyIds.length > 0) {
@@ -107,7 +107,7 @@ class ApiKeyManager {
   async markRateLimited(keyIdOrDecryptedKey: string): Promise<void> {
     try {
       // Find key by ID or by matching decrypted key
-      let apiKey = await this.findKeyByIdOrValue(keyIdOrDecryptedKey);
+      const apiKey = await this.findKeyByIdOrValue(keyIdOrDecryptedKey);
 
       if (!apiKey) {
         console.warn('[ApiKeyManager] Key not found for rate limit marking');
@@ -198,11 +198,11 @@ class ApiKeyManager {
    * Find a key by ID or by matching decrypted key value
    * This allows tracking by either identifier
    */
-  private async findKeyByIdOrValue(keyIdOrDecryptedKey: string): Promise<{ id: string } | null> {
+  private async findKeyByIdOrValue(keyIdOrDecryptedKey: string): Promise<{ id: string; name?: string | null } | null> {
     // Try as ID first (most common case)
     const byId = await prisma.apiKey.findUnique({
       where: { id: keyIdOrDecryptedKey },
-      select: { id: true },
+      select: { id: true, name: true },
     });
 
     if (byId) {
@@ -214,6 +214,7 @@ class ApiKeyManager {
     const allKeys = await prisma.apiKey.findMany({
       select: {
         id: true,
+        name: true,
         encryptedKey: true,
       },
     });
@@ -222,7 +223,7 @@ class ApiKeyManager {
       try {
         const decrypted = decryptKey(key.encryptedKey);
         if (decrypted === keyIdOrDecryptedKey) {
-          return { id: key.id };
+          return { id: key.id, name: key.name };
         }
       } catch {
         // Skip invalid keys
